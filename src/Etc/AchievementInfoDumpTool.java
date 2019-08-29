@@ -1,26 +1,29 @@
 package Etc;
-import java.io.BufferedWriter;
+
 import java.io.File;
-import java.io.FileWriter;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.TreeMap;
 
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 
+/**
+ * @author w00481566
+ *
+ */
 public class AchievementInfoDumpTool {
 
-	private static boolean debug = false;
+	private static boolean debug = true;
 
 	public static void main(String[] args) {
-		if (args.length < 2) {
-			String[] defaultArgs = { "C:\\Games\\BMS\\wz", "C:\\Games\\BMS\\Ω≈±æ" };
+		if (args.length < 1) {
+			String[] defaultArgs = { "D:\\ËΩØ‰ª∂\\MapleStory-RPG-master\\Achievement\\AchievementData" };
+			// String[] defaultArgs = { "C:\\Games\\BMS\\wz\\Etc\\Achievement\\AchievementData" };
 			args = defaultArgs;
 		}
-		String path = args[0], outPath = args[1];
+		String path = args[0];
 		for (int i = 2; i < args.length; i++) {
 			if (args[i].equals("--debug")) {
 				debug = true;
@@ -28,103 +31,197 @@ public class AchievementInfoDumpTool {
 		}
 		if (debug)
 			System.out.println("input = " + Arrays.toString(args));
-		// ∂¡»°∑≠“ÎŒƒº˛
-		if (debug)
-			System.out.println("∂¡»°∑≠“ÎŒƒº˛£∫" + path + "\\String.wz\\Map.img.xml");
-		TreeMap<Integer, String> mapInfo = readTranslation(path + "\\String.wz\\Map.img.xml");
-		// ∂¡»°µÿÕºŒƒº˛
-		if (debug)
-			System.out.println("∂¡»°µÿÕºŒƒº˛£∫" + path + "\\Map.wz\\Map");
-		HashSet<Integer> existMaps = readMapWZ(path + "\\Map.wz\\Map", mapInfo);
-		//  ‰≥ˆΩ·π˚
-		File writename = new File(outPath + "\\µÿÕºª˘±æ–≈œ¢.txt");
-		if (writename.exists())
-			writename.delete();
-		try {
-			writename.createNewFile();
-			BufferedWriter out = new BufferedWriter(new FileWriter(writename));
-			int lastkey = 0, startkey = 0;
-			String lastvalue = null, lastline = null;
-			for (int key : mapInfo.keySet()) {
-				if (!existMaps.contains(key))
-					continue;
-				String value = mapInfo.get(key);
-				if (key == lastkey + 1 && lastvalue != null && lastvalue.equals(value)) {
-					lastkey = key;
-					continue;
-				}
-				if (lastkey != startkey) {
-					out.write(startkey + " ~TO~> " + lastkey + lastvalue + "\r\n"); // \r\nº¥Œ™ªª––
-				} else if (lastline != null) {
-					out.write(lastline); // \r\nº¥Œ™ªª––
-				}
-				startkey = lastkey = key;
-				lastvalue = value;
-				lastline = key + value + "\r\n";
+		// ËØªÂèñÊñá‰ª∂
+		File dir = new File(path);
+		if (!dir.exists() || !dir.isDirectory()) {
+			System.err.println("‰∏çÊòØÊúâÊïàÊñá‰ª∂Â§πÔºÅ");
+			return;
+		}
+		for (File xml : dir.listFiles()) {
+			int id = Integer.parseInt(xml.getName().substring(0, xml.getName().length() - 8));
+			readXML(xml, id);
+		}
+		// ËæìÂá∫ÁªìÊûú
+		/*
+		 * File writename = new File(outPath + "\\Âú∞ÂõæÂü∫Êú¨‰ø°ÊÅØ.txt"); if (writename.exists()) writename.delete(); try {
+		 * writename.createNewFile(); BufferedWriter out = new BufferedWriter(new FileWriter(writename)); int lastkey = 0, startkey = 0;
+		 * String lastvalue = null, lastline = null; for (int key : mapInfo.keySet()) { if (!existMaps.contains(key)) continue; String
+		 * value = mapInfo.get(key); if (key == lastkey + 1 && lastvalue != null && lastvalue.equals(value)) { lastkey = key; continue; }
+		 * if (lastkey != startkey) { out.write(startkey + " ~TO~> " + lastkey + lastvalue + "\r\n"); // \r\nÂç≥‰∏∫Êç¢Ë°å } else if (lastline !=
+		 * null) { out.write(lastline); // \r\nÂç≥‰∏∫Êç¢Ë°å } startkey = lastkey = key; lastvalue = value; lastline = key + value + "\r\n"; } if
+		 * (lastline != null) { out.write(lastline); // \r\nÂç≥‰∏∫Êç¢Ë°å } out.flush(); // ÊääÁºìÂ≠òÂå∫ÂÜÖÂÆπÂéãÂÖ•Êñá‰ª∂ out.close(); // ÊúÄÂêéËÆ∞ÂæóÂÖ≥Èó≠Êñá‰ª∂ } catch (Exception
+		 * e) { e.printStackTrace(); }
+		 */
+		if (debug) {
+			System.out.println("// ‰ªªÂä°ID -> ÊàêÂ∞±");
+			System.out.print("int[][] questCheckArray = {");
+			for (int key : questCheck.keySet()) {
+				System.out.print("{" + key + ", " + questCheck.get(key) + "}, ");
 			}
-			if (lastline != null) {
-				out.write(lastline); // \r\nº¥Œ™ªª––
+			System.out.println("{-1,-1} };");
+			System.out.println("// Âú∞ÂõæID -> ÊàêÂ∞±");
+			System.out.print("int[][] discoverCheckArray = {");
+			for (int key : discoverCheck.keySet()) {
+				System.out.print("{" + key + ", " + discoverCheck.get(key) + "}, ");
 			}
-			out.flush(); // ∞—ª∫¥Ê«¯ƒ⁄»›—π»ÎŒƒº˛
-			out.close(); // ◊Ó∫Ûº«µ√πÿ±’Œƒº˛
-		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println("{-1,-1} };");
 		}
 	}
 
-	private static TreeMap<Integer, String> readTranslation(String path) {
-		TreeMap<Integer, String> mapInfo = new TreeMap<>();
+	private static class AchievementInfo {
+		// ‰∏ª
+		int id;
+		String mainCategory;
+		String subCategory;
+		String name;
+		String desc;
+		int count;
+
+		// Ê¨°
+		public AchievementInfo(int id, String mainCategory, String subCategory, String name, String desc) {
+			this.id = id;
+			this.mainCategory = mainCategory;
+			this.subCategory = subCategory;
+			this.name = name;
+			this.desc = desc;
+		};
+	}
+
+	private static class SubAchievementInfo {
+		AchievementInfo achievementInfo;
+		int totalId;
+		// Ê¨°
+		int subId;
+		String subCategoryname;
+		String subMissionType;
+		int checkValue;
+
+		public SubAchievementInfo(AchievementInfo achievementInfo, int subId, String subCategoryname, String subMissionType,
+				int checkValue) {
+			this.achievementInfo = achievementInfo;
+			this.subId = subId;
+			this.totalId = this.achievementInfo.id * 1000 + subId;
+			this.subCategoryname = subCategoryname;
+			this.subMissionType = subMissionType;
+			this.checkValue = checkValue;
+		};
+
+		public String toString() {
+			return totalId + " - " + achievementInfo.name + " - " + subCategoryname + " - Ë¶ÅÊ±Ç " + subMissionType + ":" + checkValue;
+		}
+	}
+
+	/**
+	 * TYPE Ê†πÊçÆÊàêÂ∞±IDÊü•ÊàêÂ∞±‰ø°ÊÅØ<br>
+	 */
+	private static HashMap<Integer, AchievementInfo> achievement = new HashMap<>();
+	private static HashMap<Integer, SubAchievementInfo> subAchievement = new HashMap<>();
+	/**
+	 * Âú∞ÂõæÊé¢Á¥¢ÊàêÂ∞±<br>
+	 * CHECK Ê†πÊçÆÂú∞ÂõæIDÊü•ÊàêÂ∞±‰ø°ÊÅØ<br>
+	 */
+	private static HashMap<Integer, Integer> discoverCheck = new HashMap<>();
+	/**
+	 * ÂÆåÊàê‰ªªÂä°/ÂâßÊÉÖ/ÂâØÊú¨„ÄÅÊ∏ÖÁ©∫Âú∞Âå∫‰ªªÂä°ÊàêÂ∞±<br>
+	 * CHECK Ê†πÊçÆ‰ªªÂä°IDÊü•ÊàêÂ∞±‰ø°ÊÅØ<br>
+	 */
+	private static HashMap<Integer, Integer> questCheck = new HashMap<>();
+
+	private static void readXML(File file, int id) {
 		SAXReader reader = new SAXReader();
 		try {
-			Document doc = reader.read(path);
-			Element root = doc.getRootElement();
-			for (Iterator<Element> i = root.elementIterator("imgdir"); i.hasNext();) {
-				Element mapSet = i.next();
-				for (Iterator<Element> j = mapSet.elementIterator("imgdir"); j.hasNext();) {
-					Element map = j.next();
-					String key = map.attribute("name").getValue().toString();
-					String info = "";
-					for (Iterator<Element> k = map.elementIterator("string"); k.hasNext();) {
-						info += " - " + k.next().attribute("value").getValue().toString();
-					}
-					mapInfo.put(Integer.parseInt(key), info);
-					if (debug)
-						System.out.println(key + info);
+			Document doc = reader.read(file);
+			Element root = doc.getRootElement(); // xxx.img
+			// <imgdir name="info">
+			Iterator<Element> rootIter = root.elementIterator("imgdir");
+			Element info = rootIter.next();
+			Iterator<Element> j = info.elementIterator("string");
+			String mainCategory = j.next().attribute("value").getValue().toString();
+			String subCategory = j.next().attribute("value").getValue().toString();
+			String name = j.next().attribute("value").getValue().toString();
+			String desc = j.next().attribute("value").getValue().toString();
+			if (!achievement.containsKey(id)) {
+				achievement.put(id, new AchievementInfo(id, mainCategory, subCategory, name, desc));
+			}
+			AchievementInfo mainAchievement = achievement.get(id);
+			// <imgdir name="mission">
+			Element mission = rootIter.next();
+			String lastName = null;
+			for (Iterator<Element> k = mission.elementIterator("imgdir"); k.hasNext();) {
+				// <imgdir name="0">
+				Element subMission = k.next();
+				int subId = Integer.parseInt(subMission.attribute("name").getValue().toString());
+				// <string name="name" value="ÈáçËÆæÂÜÖÂú®ËÉΩÂäõÂêéËææÂà∞AÁ∫ß"/>
+				Iterator<Element> kString = subMission.elementIterator("string");
+				String subCategoryname;
+				if (kString.hasNext()) {
+					subCategoryname = kString.next().attribute("value").getValue().toString();
+					lastName = subCategoryname;
+				} else {
+					subCategoryname = lastName;
 				}
+				// <imgdir name="subMission">
+				Iterator<Element> k2 = subMission.elementIterator("imgdir");
+				// <imgdir name="ability_change">
+				Iterator<Element> k3 = k2.next().elementIterator("imgdir");
+				Element eSubMissionType = k3.next();
+				String subMissionType = eSubMissionType.attribute("name").getValue().toString();
+				// <imgdir name="score">
+				Iterator<Element> k4 = eSubMissionType.elementIterator("imgdir");
+				do {
+					Element eCheckValue = k4.next();
+					if (eCheckValue.attribute("name").getValue().toString().equals("checkValue")) {
+						// <imgdir name="checkValue">
+						int value = 0;
+						switch (subMissionType) {
+						case "field_enter":
+							Element eCheckValueData = eCheckValue.elementIterator("imgdir").next();
+							Iterator<Element> iValues = eCheckValueData.elementIterator("int");
+							if (iValues.hasNext()) { // Âçï‰∏™‰ªªÂä°
+								value = Integer.parseInt(iValues.next().attribute("value").getValue().toString());
+								updateMap(discoverCheck,
+										new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value));
+							} else { // Â§ö‰∏™‰ªªÂä°
+								for (Iterator<Element> iCheckValueDataSet = eCheckValueData.elementIterator("imgdir").next()
+										.elementIterator("imgdir"); iCheckValueDataSet.hasNext();) {
+									value = Integer.parseInt(iCheckValueDataSet.next().elementIterator("int").next().attribute("value")
+											.getValue().toString());
+									updateMap(discoverCheck,
+											new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value));
+								}
+							}
+							break;
+						case "quest_state_change":
+							eCheckValueData = eCheckValue.elementIterator("imgdir").next();
+							iValues = eCheckValue.elementIterator("imgdir").next().elementIterator("int");
+							if (iValues.hasNext()) { // Âçï‰∏™‰ªªÂä°
+								value = Integer.parseInt(iValues.next().attribute("value").getValue().toString());
+								updateMap(questCheck,
+										new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value));
+							} else { // Â§ö‰∏™‰ªªÂä°
+								for (Iterator<Element> iCheckValueDataSet = eCheckValueData.elementIterator("imgdir").next()
+										.elementIterator("int"); iCheckValueDataSet.hasNext();) {
+									value = Integer.parseInt(iCheckValueDataSet.next().attribute("value").getValue().toString());
+									updateMap(questCheck,
+											new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value));
+								}
+							}
+							break;
+						default:
+							break;
+						}
+						break;
+					}
+				} while (true);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return mapInfo;
 	}
 
-	private static HashSet<Integer> readMapWZ(String path, TreeMap<Integer, String> mapInfo) {
-		HashSet<Integer> blankMaps = new HashSet<>();
-		try {
-			File rootDir = new File(path);
-			if (!rootDir.exists())
-				return blankMaps;
-			File[] listFiles = rootDir.listFiles();
-			for (File f : listFiles) {
-				if (!f.isDirectory()) {
-					continue;
-				}
-				File[] listXMLs = f.listFiles();
-				for (File xml : listXMLs) {
-					String name = xml.getName();
-					int mapid = Integer.parseInt(name.substring(0, name.length() - 8));
-					blankMaps.add(mapid);
-					if (!mapInfo.containsKey(mapid)) {
-						mapInfo.put(mapid, " - <NULL>");
-						if (debug) {
-							System.out.println(mapid + " - <NULL>");
-						}
-					}
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return blankMaps;
+	private static void updateMap(HashMap<Integer, Integer> check, SubAchievementInfo newInfo) {
+		int aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
+		subAchievement.put(aId, newInfo);
+		check.put(newInfo.checkValue, aId);
 	}
 }
