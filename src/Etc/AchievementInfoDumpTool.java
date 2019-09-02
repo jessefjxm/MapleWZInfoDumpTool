@@ -1,11 +1,12 @@
 package Etc;
 
 import java.io.File;
-import java.util.Arrays;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 
 import org.dom4j.Document;
 import org.dom4j.Element;
@@ -17,12 +18,13 @@ import org.dom4j.io.SAXReader;
  */
 public class AchievementInfoDumpTool {
 
-	private static boolean debug = true;
+	private static boolean debug = false;
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			String[] defaultArgs = { "D:\\软件\\MapleStory-RPG-master\\Achievement\\AchievementData" };
-			// String[] defaultArgs = { "C:\\Games\\BMS\\wz\\Etc\\Achievement\\AchievementData" };
+			// String[] defaultArgs = {
+			// "D:\\软件\\MapleStory-RPG-master\\Achievement\\AchievementData" };
+			String[] defaultArgs = { "C:\\Games\\BMS\\wz\\Etc.wz\\Achievement\\AchievementData" };
 			args = defaultArgs;
 		}
 		String path = args[0];
@@ -30,9 +32,6 @@ public class AchievementInfoDumpTool {
 			if (args[i].equals("--debug")) {
 				debug = true;
 			}
-		}
-		if (debug) {
-			// System.out.println("input = " + Arrays.toString(args));
 		}
 		// 读取文件
 		File dir = new File(path);
@@ -45,16 +44,6 @@ public class AchievementInfoDumpTool {
 			readXML(xml, id);
 		}
 		// 输出结果
-		/*
-		 * File writename = new File(outPath + "\\地图基本信息.txt"); if (writename.exists()) writename.delete(); try {
-		 * writename.createNewFile(); BufferedWriter out = new BufferedWriter(new FileWriter(writename)); int lastkey = 0, startkey = 0;
-		 * String lastvalue = null, lastline = null; for (int key : mapInfo.keySet()) { if (!existMaps.contains(key)) continue; String
-		 * value = mapInfo.get(key); if (key == lastkey + 1 && lastvalue != null && lastvalue.equals(value)) { lastkey = key; continue; }
-		 * if (lastkey != startkey) { out.write(startkey + " ~TO~> " + lastkey + lastvalue + "\r\n"); // \r\n即为换行 } else if (lastline !=
-		 * null) { out.write(lastline); // \r\n即为换行 } startkey = lastkey = key; lastvalue = value; lastline = key + value + "\r\n"; } if
-		 * (lastline != null) { out.write(lastline); // \r\n即为换行 } out.flush(); // 把缓存区内容压入文件 out.close(); // 最后记得关闭文件 } catch (Exception
-		 * e) { e.printStackTrace(); }
-		 */
 		if (debug) {
 			System.out.println("// 任务ID -> 成就");
 			System.out.print("int[][][] questCheckArray = {");
@@ -72,12 +61,21 @@ public class AchievementInfoDumpTool {
 				System.out.print("{" + key + ", " + discoverCheck.get(key) + "}, ");
 			}
 			System.out.println("};");
-		} else {
-			for (int key : subAchievement.keySet()) {
-				if (!discoverCheck.containsValue(key) && !questCheck.containsValue(key)) {
-					System.out.println(subAchievement.get(key).toString());
-				}
-			}
+			/*
+			 * for (int key : subAchievement.keySet()) { if
+			 * (!discoverCheck.containsValue(key) && !questCheck.containsValue(key)) {
+			 * System.out.println(subAchievement.get(key).toString()); } }
+			 */
+		}
+		try {
+			FileOutputStream fs = new FileOutputStream(
+					"C:\\Games\\BMS\\脚本\\冒险岛：传说世界\\wz\\Etc.wz\\Achievement\\EventAchievementTool.ser");
+			ObjectOutputStream out = new ObjectOutputStream(fs);
+			out.writeObject(discoverCheck);
+			out.writeObject(questCheck);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -88,7 +86,6 @@ public class AchievementInfoDumpTool {
 		String subCategory;
 		String name;
 		String desc;
-		int count;
 
 		// 次
 		public AchievementInfo(int id, String mainCategory, String subCategory, String name, String desc) {
@@ -109,8 +106,8 @@ public class AchievementInfoDumpTool {
 		String subMissionType;
 		int checkValue;
 
-		public SubAchievementInfo(AchievementInfo achievementInfo, int subId, String subCategoryname, String subMissionType,
-				int checkValue) {
+		public SubAchievementInfo(AchievementInfo achievementInfo, int subId, String subCategoryname,
+				String subMissionType, int checkValue) {
 			this.achievementInfo = achievementInfo;
 			this.subId = subId;
 			this.totalId = this.achievementInfo.id * 1000 + subId;
@@ -120,8 +117,8 @@ public class AchievementInfoDumpTool {
 		};
 
 		public String toString() {
-			return totalId + " - " + achievementInfo.mainCategory + " - " + achievementInfo.subCategory + " - " + achievementInfo.name
-					+ " - " + subCategoryname + " - 要求 " + subMissionType + ":" + checkValue;
+			return totalId + " - " + achievementInfo.mainCategory + " - " + achievementInfo.subCategory + " - "
+					+ achievementInfo.name + " - " + subCategoryname + " - 要求 " + subMissionType + ":" + checkValue;
 		}
 	}
 
@@ -188,49 +185,72 @@ public class AchievementInfoDumpTool {
 						// <imgdir name="checkValue">
 						int value = 0, aId;
 						SubAchievementInfo newInfo;
+						Element eCheckValueData;
+						Iterator<Element> iValues;
 						switch (subMissionType) {
 						case "field_enter":
-							Element eCheckValueData = eCheckValue.elementIterator("imgdir").next();
-							Iterator<Element> iValues = eCheckValueData.elementIterator("int");
-							if (iValues.hasNext()) { // 单个任务
+							eCheckValueData = eCheckValue.elementIterator("imgdir").next();
+							iValues = eCheckValueData.elementIterator("int");
+							if (iValues.hasNext()) { // 单个地图
 								value = Integer.parseInt(iValues.next().attribute("value").getValue().toString());
-							} else { // 多个任务
-								for (Iterator<Element> iCheckValueDataSet = eCheckValueData.elementIterator("imgdir").next()
-										.elementIterator("imgdir"); iCheckValueDataSet.hasNext();) {
-									value = Integer.parseInt(iCheckValueDataSet.next().elementIterator("int").next().attribute("value")
-											.getValue().toString());
+								newInfo = new SubAchievementInfo(mainAchievement, subId, subCategoryname,
+										subMissionType, value);
+								aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
+								subAchievement.put(aId, newInfo);
+								if (!newInfo.achievementInfo.mainCategory.contains("检查")) {
+									discoverCheck.put(newInfo.checkValue, aId);
 								}
-							}
-							newInfo = new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value);
-							aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
-							subAchievement.put(aId, newInfo);
-							if (!newInfo.achievementInfo.mainCategory.contains("检查")) {
-								discoverCheck.put(newInfo.checkValue, aId);
+							} else { // 多个地图
+								for (Iterator<Element> iCheckValueDataSet = eCheckValueData.elementIterator("imgdir")
+										.next().elementIterator("imgdir"); iCheckValueDataSet.hasNext();) {
+									value = Integer.parseInt(iCheckValueDataSet.next().elementIterator("int").next()
+											.attribute("value").getValue().toString());
+									newInfo = new SubAchievementInfo(mainAchievement, subId, subCategoryname,
+											subMissionType, value);
+									aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
+									subAchievement.put(aId, newInfo);
+									if (!newInfo.achievementInfo.mainCategory.contains("检查")) {
+										discoverCheck.put(newInfo.checkValue, aId);
+									}
+								}
 							}
 							break;
 						case "quest_state_change":
 							eCheckValueData = eCheckValue.elementIterator("imgdir").next();
-							iValues = eCheckValue.elementIterator("imgdir").next().elementIterator("int");
+							iValues = eCheckValueData.elementIterator("int");
 							if (iValues.hasNext()) { // 单个任务
 								value = Integer.parseInt(iValues.next().attribute("value").getValue().toString());
-							} else { // 多个任务
-								for (Iterator<Element> iCheckValueDataSet = eCheckValueData.elementIterator("imgdir").next()
-										.elementIterator("int"); iCheckValueDataSet.hasNext();) {
-									value = Integer.parseInt(iCheckValueDataSet.next().attribute("value").getValue().toString());
+								newInfo = new SubAchievementInfo(mainAchievement, subId, subCategoryname,
+										subMissionType, value);
+								aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
+								subAchievement.put(aId, newInfo);
+								if (!newInfo.achievementInfo.mainCategory.contains("检查")) {
+									HashSet<Integer> set = questCheck.getOrDefault(newInfo.checkValue, new HashSet<>());
+									set.add(aId);
+									questCheck.put(newInfo.checkValue, set);
 								}
-							}
-							newInfo = new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value);
-							aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
-							subAchievement.put(aId, newInfo);
-							if (!newInfo.achievementInfo.mainCategory.contains("检查")) {
-								HashSet<Integer> set = questCheck.getOrDefault(newInfo.checkValue, new HashSet<>());
-								set.add(aId);
-								questCheck.put(newInfo.checkValue, set);
+							} else { // 多个任务
+								for (Iterator<Element> iCheckValueDataSet = eCheckValueData.elementIterator("imgdir")
+										.next().elementIterator("imgdir").next()
+										.elementIterator("int"); iCheckValueDataSet.hasNext();) {
+									value = Integer.parseInt(
+											iCheckValueDataSet.next().attribute("value").getValue().toString());
+									newInfo = new SubAchievementInfo(mainAchievement, subId, subCategoryname,
+											subMissionType, value);
+									aId = newInfo.achievementInfo.id * 1000 + newInfo.subId;
+									subAchievement.put(aId, newInfo);
+									if (!newInfo.achievementInfo.mainCategory.contains("检查")) {
+										HashSet<Integer> set = questCheck.getOrDefault(newInfo.checkValue,
+												new HashSet<>());
+										set.add(aId);
+										questCheck.put(newInfo.checkValue, set);
+									}
+								}
 							}
 							break;
 						default:
-							subAchievement.put(id * 1000 + subId,
-									new SubAchievementInfo(mainAchievement, subId, subCategoryname, subMissionType, value));
+							subAchievement.put(id * 1000 + subId, new SubAchievementInfo(mainAchievement, subId,
+									subCategoryname, subMissionType, value));
 							break;
 						}
 						break;
