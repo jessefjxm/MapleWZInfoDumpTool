@@ -1,8 +1,12 @@
 package Map;
+
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -14,10 +18,10 @@ import org.dom4j.io.SAXReader;
 public class MapInfoDumpTool {
 
 	private static boolean debug = false;
-
+	
 	public static void main(String[] args) {
 		if (args.length < 2) {
-			String[] defaultArgs = { "C:\\Games\\BMS\\wz", "C:\\Games\\BMS\\½Å±¾" };
+			String[] defaultArgs = { "C:\\Games\\BMS\\wz", "C:\\Games\\BMS\\è„šæœ¬" };
 			args = defaultArgs;
 		}
 		String path = args[0], outPath = args[1];
@@ -28,45 +32,52 @@ public class MapInfoDumpTool {
 		}
 		if (debug)
 			System.out.println("input = " + Arrays.toString(args));
-		// ¶ÁÈ¡·­ÒëÎÄ¼ş
+		// è¯»å–ç¿»è¯‘æ–‡ä»¶
 		if (debug)
-			System.out.println("¶ÁÈ¡·­ÒëÎÄ¼ş£º" + path + "\\String.wz\\Map.img.xml");
+			System.out.println("è¯»å–ç¿»è¯‘æ–‡ä»¶ï¼š" + path + "\\String.wz\\Map.img.xml");
 		TreeMap<Integer, String> mapInfo = readTranslation(path + "\\String.wz\\Map.img.xml");
-		// ¶ÁÈ¡µØÍ¼ÎÄ¼ş
+		// è¯»å–åœ°å›¾æ–‡ä»¶
 		if (debug)
-			System.out.println("¶ÁÈ¡µØÍ¼ÎÄ¼ş£º" + path + "\\Map.wz\\Map");
-		HashSet<Integer> existMaps = readMapWZ(path + "\\Map.wz\\Map", mapInfo);
-		// Êä³ö½á¹û
-		File writename = new File(outPath + "\\µØÍ¼»ù±¾ĞÅÏ¢.txt");
-		if (writename.exists())
-			writename.delete();
+			System.out.println("è¯»å–åœ°å›¾æ–‡ä»¶ï¼š" + path + "\\Map.wz\\Map");
+		HashSet<Integer> existSet = readMapWZ(path + "\\Map.wz\\Map", mapInfo);
+		// è¾“å‡ºç»“æœ
+		File mapInfoFile = new File(outPath + "\\åœ°å›¾åŸºæœ¬ä¿¡æ¯.txt");
+		if (mapInfoFile.exists())
+			mapInfoFile.delete();
 		try {
-			writename.createNewFile();
-			BufferedWriter out = new BufferedWriter(new FileWriter(writename));
+			// åºåˆ—åŒ–å¯¼å‡º
+			ObjectOutputStream outSer = new ObjectOutputStream(new FileOutputStream(outPath + "\\MapInfo.ser"));
+			HashMap<Integer, String> existMap = new HashMap<>();
+			// æ–‡æœ¬å¯¼å‡º
+			mapInfoFile.createNewFile();
+			BufferedWriter out = new BufferedWriter(new FileWriter(mapInfoFile));
 			int lastkey = 0, startkey = 0;
 			String lastvalue = null, lastline = null;
 			for (int key : mapInfo.keySet()) {
-				if (!existMaps.contains(key))
+				if (!existSet.contains(key))
 					continue;
 				String value = mapInfo.get(key);
+				existMap.put(key, value);
 				if (key == lastkey + 1 && lastvalue != null && lastvalue.equals(value)) {
 					lastkey = key;
 					continue;
 				}
 				if (lastkey != startkey) {
-					out.write(startkey + " ~TO~> " + lastkey + lastvalue + "\r\n"); // \r\n¼´Îª»»ĞĞ
+					out.write(startkey + " ~TO~> " + lastkey + lastvalue + "\r\n"); // \r\nå³ä¸ºæ¢è¡Œ
 				} else if (lastline != null) {
-					out.write(lastline); // \r\n¼´Îª»»ĞĞ
+					out.write(lastline); // \r\nå³ä¸ºæ¢è¡Œ
 				}
 				startkey = lastkey = key;
 				lastvalue = value;
 				lastline = key + value + "\r\n";
 			}
 			if (lastline != null) {
-				out.write(lastline); // \r\n¼´Îª»»ĞĞ
+				out.write(lastline); // \r\nå³ä¸ºæ¢è¡Œ
 			}
-			out.flush(); // °Ñ»º´æÇøÄÚÈİÑ¹ÈëÎÄ¼ş
-			out.close(); // ×îºó¼ÇµÃ¹Ø±ÕÎÄ¼ş
+			out.flush(); // æŠŠç¼“å­˜åŒºå†…å®¹å‹å…¥æ–‡ä»¶
+			out.close(); // æœ€åè®°å¾—å…³é—­æ–‡ä»¶
+			outSer.writeObject(existMap);
+			outSer.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
